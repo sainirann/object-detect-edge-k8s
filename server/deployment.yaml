@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: object-detection-deployment
+spec:
+  selector:
+    matchLabels:
+      app: objectdetection
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: objectdetection
+    spec:
+      containers:
+      - name: tfmodelserver
+        image: sainirann/tfmodelserver:v1.0
+        imagePullPolicy: Never
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        ports:
+        - containerPort: 8080
+        - containerPort: 8081
+      - name: app-server
+        image: sainirann/app-server:v2.0
+        imagePullPolicy: Never
+        command: ["python", "/server/HostServer.py"]
+        args: ["person"]
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        ports:
+        - containerPort: 9080
+      - name: email-notifier
+        image: sainirann/email-notifier:v1.0
+        imagePullPolicy: Never
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        ports:
+        - containerPort: 3000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: object-detection-service
+spec:
+  selector:
+    app: objectdetection
+  ports:
+    - protocol: TCP
+      name: tfmodelserver
+      port: 8080
+      targetPort: 8080
+    - protocol: TCP
+      name: app-server
+      port: 9080
+      targetPort: 9080
+      nodePort: 31507
+    - protocol: TCP
+      name: email-notifier
+      port: 3000
+      targetPort: 3000
+  type: NodePort

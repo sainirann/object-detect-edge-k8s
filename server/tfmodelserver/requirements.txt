@@ -1,0 +1,7 @@
+numpy
+virtualenv
+six
+pillow
+tensorflow==1.15
+requests
+matplotlib
